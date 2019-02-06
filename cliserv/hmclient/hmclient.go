@@ -154,7 +154,7 @@ func getIncompleteWord(conn net.Conn) []string {
 }
 
 func connectToServer() net.Conn {
-	conn, _ := net.Dial("tcp", "127.0.0.1:15325")
+	conn, _ := net.Dial("tcp", ":15325")
 	return conn
 }
 

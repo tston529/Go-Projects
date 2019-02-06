@@ -161,7 +161,7 @@ func main() {
 	clientJobs := make(chan ClientJob)
 	go generateResponses(clientJobs, the_word)
 	
-	ln, err := net.Listen("tcp", "127.0.0.1:15325")
+	ln, err := net.Listen("tcp", ":15325")
 	check(err, "Server is ready.")
 
 	for {
