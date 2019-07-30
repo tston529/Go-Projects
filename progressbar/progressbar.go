@@ -15,13 +15,22 @@ var Magenta = 45
 var Cyan  	= 46
 
 type pbar struct {
+
+	unprepped bool
+
 	currLen int
 	totalLen int
+
 	isColor bool
 	color int
 	width int
+
 	fillString string
-	bar string
+	bgString string
+
+	filledBar string
+	remainingBar string
+
 	LOW int
 	MEDIUM int
 	HIGH int
@@ -40,9 +49,11 @@ func NewPbar(args ...interface{}) (*pbar, error) {
     }
 
 	pb := new(pbar)
+	pb.unprepped = true
 	pb.width = 20
 	pb.isColor = false
-	pb.fillString = " "
+	pb.fillString = "="
+	pb.bgString = "_"
 
 	pb.currLen = 0
 	pb.LOW = Red
@@ -91,22 +102,28 @@ func NewPbar(args ...interface{}) (*pbar, error) {
         	}
 		}
 	}
-
-	pb.prep()
 	return pb, nil
 }
 
-func (pb * pbar) toggleColor(inColor bool) {
+// ToggleColor lets the user set whether the bar is color or b/w
+func (pb * pbar) ToggleColor(inColor bool) {
 	pb.isColor = inColor
 }
 
-func (pb * pbar) setFillString(str string) {
-	pb.fillString = str
+// SetGraphics lets the user change the fg/bg text
+func (pb * pbar) SetGraphics(args ...string) {
+	if len(args) == 0 {
+		pb.fillString = " "
+		pb.bgString   = " "
+	} else if len(args) == 1 {
+		pb.fillString = args[0]
+	} else if len(args) == 2 {
+		pb.fillString = args[0]
+		pb.bgString   = args[1]
+	} else {
+		fmt.Println("Too many arguments. Only need two.")
+	}
 }
-
-var BarItem = "\033[47m"
-
-var colors = []int{Red, Yellow, Green, White}
 
 func (pb * pbar) prep() {
 			// \033[0E 	: beginning of line (?)
@@ -115,11 +132,18 @@ func (pb * pbar) prep() {
 			// \033[52G	: move cursor 52 spaces right
 			// ]		: just prints out ']' string literal
 			// \033[2G	: load stored cursor position
-	fmt.Printf("\033[0E[\0337\033[%dG]\033[2G", pb.width+2)
-	pb.bar = ""
+	pb.filledBar = ""
 	if !pb.isColor {
 		pb.color = White
+		// If b/w, make the text visible (otherwise background would print white)
+		if pb.fillString != " " {
+			pb.color -= 10
+		}
 	}
+	for i := 0; i < pb.width; i+=1 {
+		pb.remainingBar+=pb.bgString
+	}
+	fmt.Printf("\033[0E[\0337%s]\033[2G", pb.remainingBar)
 }
 
 //TODO: Change params to take slices rather than color ints
@@ -140,12 +164,23 @@ func (pb * pbar) changeColor() {
 	
 }
 
-func (pb * pbar) increaseBar() {
+// IncreaseBar increments its internal counter and recalculates the
+//   size of the bar that is filled in.
+func (pb * pbar) IncreaseBar() {
+
+	// Run initialization stuff if not already.
+	//   Need to do this now because of extra stuff user
+	//   may change before running their loop.
+	if pb.unprepped {
+		pb.prep()
+		pb.unprepped = false
+	}
+
 	threshold := (float32(pb.totalLen) / float32(pb.width))+1
 	pb.currLen+=1
-	pb.bar = ""
+	pb.filledBar = ""
 	for i := 0; i < pb.currLen; i+=int(threshold) {
-		pb.bar+=pb.fillString
+		pb.filledBar+=pb.fillString
 	}
 	pb.drawBar()
 	if pb.currLen == pb.totalLen {
@@ -157,5 +192,5 @@ func (pb *pbar) drawBar() {
 	if pb.isColor {
 		pb.changeColor()
 	}
-	fmt.Printf("\033[2G\033[%dm%s", pb.color, pb.bar)
+	fmt.Printf("\033[2G\033[%dm%s", pb.color, pb.filledBar)
 }
