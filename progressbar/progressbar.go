@@ -6,37 +6,7 @@ import(
 	"errors"
 )
 
-var White 	= 47
-var Red   	= 41
-var Green 	= 42
-var Yellow	= 43
-var Blue	= 44
-var Magenta = 45
-var Cyan  	= 46
-
-type pbar struct {
-
-	unprepped bool
-
-	currLen int
-	totalLen int
-
-	isColor bool
-	color int
-	width int
-
-	fillString string
-	bgString string
-
-	filledBar string
-	remainingBar string
-
-	LOW int
-	MEDIUM int
-	HIGH int
-	FULL int
-}
-
+// NewPbar is a constructor for a progressbar object.
 // @param length int
 // @param length Slice
 // @param pbarWidth int 20
@@ -48,18 +18,32 @@ func NewPbar(args ...interface{}) (*pbar, error) {
         return nil, err
     }
 
+    if len(colors) == 0 {
+		colors = map[string]int {
+			"white" : 	47,
+			"red" :   	41,
+			"green" : 	42,
+			"yellow" :	43,
+			"blue" :	44,
+			"magenta" : 45,
+			"cyan" :  	46,
+		}
+	}
+
 	pb := new(pbar)
+	pb.incrementAmount = 1
 	pb.unprepped = true
 	pb.width = 20
 	pb.isColor = false
-	pb.fillString = "="
+	pb.fgString = "="
 	pb.bgString = "_"
+	pb.printNumbers = 0
+	pb.currentAmount = 0
+	pb.LOW = colors["red"]
+	pb.MEDIUM = colors["yellow"]
+	pb.HIGH = colors["green"]
+	pb.FULL = colors["white"]
 
-	pb.currLen = 0
-	pb.LOW = Red
-	pb.MEDIUM = Yellow
-	pb.HIGH = Green
-	pb.FULL = White
 
 	// Validate args passed in, most importantly the first: will accept 
 	//   either an int or a slice to determine the size of each chunk of the bar.
@@ -69,9 +53,9 @@ func NewPbar(args ...interface{}) (*pbar, error) {
 			switch reflect.TypeOf(p).Kind() {
 		    case reflect.Slice:
 		    	x := reflect.ValueOf(p).Len()
-		        pb.totalLen = x
+		        pb.totalAmount = x
 		    case reflect.Int:
-		    	pb.totalLen = int(reflect.ValueOf(p).Int())
+		    	pb.totalAmount = int(reflect.ValueOf(p).Int())
 		    default:
 		    	err = errors.New("First argument must be an Int or a Slice to determine length.")
 		    	return nil, err
@@ -87,110 +71,134 @@ func NewPbar(args ...interface{}) (*pbar, error) {
             	return nil, err
             }
             pb.width = param
-        case 2: // Is in color
-        	paramBool, ok := p.(bool)
-        	paramInt, ok2 := p.(int)
-        	if !(ok || ok2) {
-        		err = errors.New("3rd parameter must be bool or int (0 = false).")
-        		return nil, err
-        	}
-        	if !ok {
-        		fmt.Println("hmm")
-        		pb.isColor = (paramInt != 0)
-        	} else {
-        		pb.isColor = paramBool
-        	}
 		}
 	}
+
+	pb.blockSize = int((float32(pb.totalAmount) / float32(pb.width))+1)
 	return pb, nil
 }
 
 // ToggleColor lets the user set whether the bar is color or b/w
-func (pb * pbar) ToggleColor(inColor bool) {
-	pb.isColor = inColor
+func (pb *pbar) ToggleColor(arg interface{}) {
+	switch reflect.TypeOf(arg).Kind() {
+	case reflect.Slice:
+		col := reflect.ValueOf(arg)
+		l := col.Len()
+
+		if l < 0 || l > 4 {
+			fmt.Println("Error: Must provide a number of colors between 0 - 4.\nSwitching to b/w...")
+			pb.isColor = false
+			return
+		}
+
+		for i := 0; i < col.Len(); i++ {
+			colStr := col.Index(i).String()
+			if _, ok := colors[colStr]; !ok {
+				fmt.Printf("'%s' is not a valid color. Switching to b/w...\n\n", colStr)
+				pb.isColor = false
+				return
+			}
+		}
+
+		if l == 4 {
+			pb.LOW = colors[(col.Index(0)).String()]
+			pb.MEDIUM = colors[(col.Index(1)).String()]
+			pb.HIGH = colors[(col.Index(2)).String()]
+			pb.FULL = colors[(col.Index(3)).String()]
+		} else if l == 3 {
+			pb.LOW = colors[(col.Index(0)).String()]
+			pb.MEDIUM = colors[(col.Index(1)).String()]
+			pb.HIGH = colors[(col.Index(2)).String()]
+			pb.FULL = colors[(col.Index(2)).String()]
+		} else if l == 2 {
+			pb.LOW = colors[(col.Index(0)).String()]
+			pb.MEDIUM = colors[(col.Index(0)).String()]
+			pb.HIGH = colors[(col.Index(1)).String()]
+			pb.FULL = colors[(col.Index(1)).String()]
+		} else if l == 1 {
+			pb.LOW = colors[(col.Index(0)).String()]
+			pb.MEDIUM = colors[(col.Index(0)).String()]
+			pb.HIGH = colors[(col.Index(0)).String()]
+			pb.FULL = colors[(col.Index(0)).String()]
+		} else {
+			pb.isColor = false
+			return
+		}
+		pb.isColor = true
+	case reflect.String:
+		col := reflect.ValueOf(arg)
+		if _, ok := colors[col.String()]; ok {
+			pb.LOW = colors[col.String()]
+			pb.MEDIUM = colors[col.String()]
+			pb.HIGH = colors[col.String()]
+			pb.FULL = colors[col.String()]
+		    pb.isColor = true
+		}
+	}
 }
 
 // SetGraphics lets the user change the fg/bg text
-func (pb * pbar) SetGraphics(args ...string) {
+func (pb *pbar) SetGraphics(args ...string) {
 	if len(args) == 0 {
-		pb.fillString = " "
+		pb.fgString = " "
 		pb.bgString   = " "
 	} else if len(args) == 1 {
-		pb.fillString = args[0]
+		pb.fgString = args[0]
 	} else if len(args) == 2 {
-		pb.fillString = args[0]
+		pb.fgString = args[0]
 		pb.bgString   = args[1]
 	} else {
 		fmt.Println("Too many arguments. Only need two.")
 	}
+	fmt.Printf("\033[2G")
 }
 
-func (pb * pbar) prep() {
-			// \033[0E 	: beginning of line (?)
-			// [		: just prints out '[' string literal
-			// \0337 	: store cursor position
-			// \033[52G	: move cursor 52 spaces right
-			// ]		: just prints out ']' string literal
-			// \033[2G	: load stored cursor position
-	pb.filledBar = ""
-	if !pb.isColor {
-		pb.color = White
-		// If b/w, make the text visible (otherwise background would print white)
-		if pb.fillString != " " {
-			pb.color -= 10
-		}
+// SetWidth allows the user to change how many characters wide the bar is drawn
+func (pb *pbar) SetWidth(arg int) {
+	if arg < 5 {
+		arg = 5
 	}
-	for i := 0; i < pb.width; i+=1 {
-		pb.remainingBar+=pb.bgString
-	}
-	fmt.Printf("\033[0E[\0337%s]\033[2G", pb.remainingBar)
+	pb.width = arg
 }
 
-//TODO: Change params to take slices rather than color ints
-func (pb * pbar) changeColor() {
-	if pb.currLen <= pb.totalLen/4 {
-		pb.color = pb.LOW
-	} else if pb.currLen > pb.totalLen/4 && pb.currLen <= 2*pb.totalLen/3 {
-		pb.color = pb.MEDIUM
-	} else if pb.currLen > 2*pb.totalLen/3 && pb.currLen < pb.totalLen {
-		pb.color = pb.HIGH
+// SetIncrementAmt allows the user to change the incrementation amount (default is 1)
+func (pb *pbar) SetIncrementAmt(arg int) {
+	if arg <= 0 {
+		arg = 1
+	}
+	pb.incrementAmount = arg
+}
+
+// SetPrintNumbers gives the user the option to display progress numerically
+//   in addition to the regular bar. Options allow for a percent or a fraction.
+func (pb *pbar) SetPrintNumbers(arg string) {
+	if arg == "percent" || arg == "%" {
+		pb.printNumbers = 2
+	} else if arg == "ratio" || arg == "numeric" || arg == "/" || arg == "fraction" {
+		pb.printNumbers = 1
 	} else {
-		pb.color = pb.FULL
+		pb.printNumbers = 0
 	}
-
-	if pb.fillString != " " {
-		pb.color -= 10
-	}
-	
 }
 
 // IncreaseBar increments its internal counter and recalculates the
 //   size of the bar that is filled in.
-func (pb * pbar) IncreaseBar() {
+func (pb *pbar) IncreaseBar() {
 
 	// Run initialization stuff if not already.
 	//   Need to do this now because of extra stuff user
 	//   may change before running their loop.
 	if pb.unprepped {
 		pb.prep()
-		pb.unprepped = false
 	}
 
-	threshold := (float32(pb.totalLen) / float32(pb.width))+1
-	pb.currLen+=1
+	pb.currentAmount+=pb.incrementAmount
 	pb.filledBar = ""
-	for i := 0; i < pb.currLen; i+=int(threshold) {
-		pb.filledBar+=pb.fillString
+	for i := 0; i < pb.currentAmount; i+=pb.blockSize {
+		pb.filledBar+=pb.fgString
 	}
 	pb.drawBar()
-	if pb.currLen == pb.totalLen {
-		fmt.Printf("\033[0m\n")
+	if pb.currentAmount >= pb.totalAmount {
+		fmt.Printf("\033[0m\n\n")
 	}
-}
-
-func (pb *pbar) drawBar() {
-	if pb.isColor {
-		pb.changeColor()
-	}
-	fmt.Printf("\033[2G\033[%dm%s", pb.color, pb.filledBar)
 }

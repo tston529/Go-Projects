@@ -24,8 +24,8 @@ func TestPbarSizeOneHundredThousand(t *testing.T) {
 }
 
 func TestPbarCustomWidth(t *testing.T) {
-	arr := make([]int, 500000)
-	pb, err := NewPbar(arr, 50)
+	arr := make([]int, 435212)
+	pb, err := NewPbar(arr, 5)
 	if err != nil {
 		t.Errorf("How did this happen")
 	}
@@ -35,13 +35,15 @@ func TestPbarCustomWidth(t *testing.T) {
 }
 
 func TestPbarAesthetics(t *testing.T) {
-	pb, err := NewPbar(200000, 50, true)
+	pb, err := NewPbar(400000, 50)
 	pb.SetGraphics("\u001b[1mX", " ")
+	pb.ToggleColor([]string{"cyan", "magenta", "green",})
+	pb.SetIncrementAmt(2)
 
 	if err != nil {
 		t.Errorf("How did this happen")
 	}
-	for i := 0; i < 200000; i++ {
+	for i := 0; i < 400000; i+=2 {
 		pb.IncreaseBar()
 	}
 }
@@ -53,11 +55,6 @@ func TestPbarFailure(t *testing.T) {
 	}
 
 	_, err = NewPbar(100, "ok")
-	if err == nil {
-		t.Errorf("How did this happen")
-	}
-
-	_, err = NewPbar(100, 50, "0")
 	if err == nil {
 		t.Errorf("How did this happen")
 	}
