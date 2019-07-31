@@ -36,5 +36,5 @@ pb.SetGraphics("\u001b[1mX", " ") // Here I set a bolded 'X' as fg, whitespace a
 pb.ToggleColor([]string{"cyan", "magenta", "green",}) // handles a single color string or an array of up to four strings
 pb.SetPrintNumbers("percent") // handles keywords for displaying percent and fraction
 ```
-[**XXXXXXXXX**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]  
+[**XXXXXXXXX**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]  
 60%
