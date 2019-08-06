@@ -219,7 +219,6 @@ func (pb *Pbar) IncreaseBar() {
 	}
 
 	if pb.printNumbers > 0 {
-		ansi.Printf("\u001b[1B")
 		pb.printValues()
 	}
 	if pb.currentAmount >= pb.totalAmount {

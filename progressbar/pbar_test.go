@@ -3,17 +3,17 @@ package progressbar
 import "testing"
 
 func TestPbarSizeFiveHundredThousand(t *testing.T) {
-	pb, err := NewPbar(500000)
+	pb, err := NewPbar(50000000)
 	if err != nil {
 		t.Errorf("How did this happen")
 	}
-	for i := 0; i < 500000; i++ {
+	for i := 0; i < 50000000; i++ {
 		pb.IncreaseBar()
 	}
 }
 
 func TestPbarFromArray(t *testing.T) {
-	arr := make([]int, 100000)
+	arr := make([]int, 1000000)
 	pb, err := NewPbar(arr)
 	if err != nil {
 		t.Errorf("How did this happen")
@@ -24,7 +24,7 @@ func TestPbarFromArray(t *testing.T) {
 }
 
 func TestPbarCustomWidth(t *testing.T) {
-	arr := make([]int, 435212)
+	arr := make([]int, 4352120)
 	pb, err := NewPbar(arr, 5)
 	if err != nil {
 		t.Errorf("How did this happen")
@@ -35,16 +35,16 @@ func TestPbarCustomWidth(t *testing.T) {
 }
 
 func TestPbarAesthetics(t *testing.T) {
-	pb, err := NewPbar(400000, 50)
-	pb.SetGraphics("\u001b[1mQWERTYUIO", " ")
+	pb, err := NewPbar(400000000, 50)
+	pb.SetGraphics("\u001b[1mX", " ")
 	pb.ToggleColor([]string{"cyan", "magenta", "green"})
-	pb.SetPrintNumbers("/")
+	pb.SetPrintNumbers("%")
 	pb.SetIncrementAmt(2)
 
 	if err != nil {
 		t.Errorf("How did this happen")
 	}
-	for i := 0; i < 400000; i += 2 {
+	for i := 0; i < 400000000; i += 2 {
 		pb.IncreaseBar()
 	}
 }

@@ -22,6 +22,7 @@ type Pbar struct {
 
 	currentAmount int
 	totalAmount   int
+	currentPercent int
 
 	// (totalAmount / pb.width)
 	//   bar adds another instance of the fg element when
@@ -74,6 +75,7 @@ func (pb *Pbar) prep() {
 
 	pb.filledBar = ""
 	pb.barLen = 0
+	pb.currentPercent = 0
 	pb.fgStringLen = parseBlockSize(pb.fgString)
 	if !pb.isColor {
 		pb.color = colors["white"]
@@ -137,9 +139,15 @@ func (pb *Pbar) drawBar() {
 //   form or in a percentage, based on user specification.
 func (pb *Pbar) printValues() {
 	if pb.printNumbers == 1 {
+		ansi.Printf("\u001b[1B")
 		ansi.Printf("\033[2G\033[0m%d / %d\u001b[1A", pb.currentAmount, pb.totalAmount)
 	} else if pb.printNumbers == 2 {
-		ansi.Printf("\033[2G\033[0m%d%s\u001b[1A", int(100*float32(pb.currentAmount)/float32(pb.totalAmount)), "%")
+		newPercent := int(100*float32(pb.currentAmount)/float32(pb.totalAmount))
+		if newPercent > pb.currentPercent {
+			ansi.Printf("\u001b[1B")
+			ansi.Printf("\033[2G\033[0m%d%s\u001b[1A", newPercent, "%")
+			pb.currentPercent = newPercent
+		}
 	}
 }
 
