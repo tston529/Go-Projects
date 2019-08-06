@@ -36,7 +36,7 @@ func TestPbarCustomWidth(t *testing.T) {
 
 func TestPbarAesthetics(t *testing.T) {
 	pb, err := NewPbar(400000, 50)
-	pb.SetGraphics("\u001b[1mTYLER", " ")
+	pb.SetGraphics("\u001b[1mQWERTYUIO", " ")
 	pb.ToggleColor([]string{"cyan", "magenta", "green"})
 	pb.SetPrintNumbers("/")
 	pb.SetIncrementAmt(2)

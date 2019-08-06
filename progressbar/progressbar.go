@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/k0kubun/go-ansi"
 )
-import "github.com/k0kubun/go-ansi"
 
 // NewPbar is a constructor for a progressbar object.
 // @param length int
@@ -32,7 +33,6 @@ func NewPbar(args ...interface{}) (*Pbar, error) {
 	}
 
 	pb := new(Pbar)
-	pb.forever = make(chan struct{})
 
 	pb.incrementAmount = 1
 	pb.unprepped = true
@@ -191,27 +191,33 @@ func (pb *Pbar) IncreaseBar() {
 	//   may change before running their loop.
 	if pb.unprepped {
 		pb.prep()
-		// fmt.Println(pb.fgStringLen)
 	}
 
 	pb.currentAmount += pb.incrementAmount
+
+	// Only redraw the bar if the new size will pass the threshold
 	if pb.currentAmount/pb.blockThreshold >= pb.barLen {
-		pb.filledBar += pb.fgString
+
+		// Tack on the next fg block on the bar.
+		if pb.barLen <= (pb.width - pb.fgStringLen) {
+			pb.filledBar += pb.fgString
+		} else {
+			// Draw the portion of the fg string block that fits in the bar
+			for i := 0; i < pb.width-pb.barLen; i++ {
+				fullStrLen := len(pb.fgString)
+				visibleStrLen := pb.fgStringLen
+				pb.filledBar += string(pb.fgString[(fullStrLen-visibleStrLen)+i])
+			}
+		}
+		pb.barLen += pb.fgStringLen
+
 		if pb.isColor {
 			pb.changeColor()
 		}
+
 		pb.drawBar()
-		pb.barLen += pb.fgStringLen
 	}
-	/* prevBar := pb.filledBar
-	pb.filledBar = ""
-	var i int
-	for i = 0; i < pb.currentAmount; i += pb.blockThreshold {
-		pb.filledBar += pb.fgString
-	}
-	if len(pb.filledBar) > len(prevBar) {
-		pb.drawBar()
-	} */
+
 	if pb.printNumbers > 0 {
 		ansi.Printf("\u001b[1B")
 		pb.printValues()
